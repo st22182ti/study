@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歴史と文化Ⅰ - 一問一答</title>
+    <title>歴史と文化Ⅰ - 5択問題</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -17,7 +17,7 @@
             min-height: 90vh;
         }
         .container {
-            max-width: 700px;
+            max-width: 800px;
             background: #fff;
             padding: 2.5em;
             border-radius: 8px;
@@ -39,40 +39,39 @@
             justify-content: center;
             flex-direction: column;
         }
-        #question-text {
-            margin-bottom: 1em;
+        .options-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 1.5em;
         }
-        #answer-input {
-            width: 80%;
-            padding: 0.8em;
-            margin-bottom: 1em;
+        .option-button {
+            flex: 1 1 calc(50% - 20px); /* 2列表示 */
+            max-width: calc(50% - 10px);
+            padding: 1em 1.5em;
+            font-size: 1em;
             border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 1em;
-        }
-        .button-group button {
-            padding: 0.8em 1.5em;
-            font-size: 1em;
-            margin: 0 0.5em;
-            border: none;
             border-radius: 5px;
+            background-color: #f9f9f9;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            text-align: left;
         }
-        #check-button {
-            background-color: #3498db;
-            color: white;
+        .option-button:hover:not(.disabled) {
+            background-color: #e9e9e9;
         }
-        #check-button:hover {
-            background-color: #2980b9;
+        .option-button.correct-answer {
+            background-color: #d4edda; /* Greenish for correct */
+            border-color: #28a745;
         }
-        #next-button {
-            background-color: #2ecc71;
-            color: white;
-            display: none; /* 初期状態では非表示 */
+        .option-button.incorrect-answer {
+            background-color: #f8d7da; /* Reddish for incorrect */
+            border-color: #dc3545;
         }
-        #next-button:hover {
-            background-color: #27ae60;
+        .option-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
         }
         #result-message {
             margin-top: 1.5em;
@@ -80,15 +79,30 @@
             min-height: 30px;
         }
         .correct {
-            color: #27ae60;
+            color: #28a745;
         }
         .incorrect {
-            color: #e74c3c;
+            color: #dc3545;
         }
-        #correct-answer {
+        #correct-answer-display {
             margin-top: 0.5em;
             color: #7f8c8d;
             display: none;
+        }
+        #next-button {
+            padding: 0.8em 2em;
+            font-size: 1.1em;
+            margin-top: 2em;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: none; /* 初期状態では非表示 */
+        }
+        #next-button:hover {
+            background-color: #2980b9;
         }
         #progress {
             margin-top: 1.5em;
@@ -99,178 +113,210 @@
 </head>
 <body>
     <div class="container">
-        <h1>歴史と文化Ⅰ - 一問一答</h1>
+        <h1>歴史と文化Ⅰ - 5択問題</h1>
 
         <div id="question-area">
             <div id="question-text"></div>
-            <input type="text" id="answer-input" placeholder="ここに回答を入力してください">
+            <div class="options-container" id="options-container"></div>
         </div>
         
-        <div class="button-group">
-            <button id="check-button" onclick="checkAnswer()">回答を確認</button>
-            <button id="next-button" onclick="nextQuestion()">次の問題へ</button>
-        </div>
-
         <div id="result-message"></div>
-        <div id="correct-answer">正解: <span id="correct-answer-text"></span></div>
+        <div id="correct-answer-display">正解: <span id="correct-answer-text"></span></div>
         
+        <button id="next-button" onclick="nextQuestion()">次の問題へ</button>
+
         <div id="progress"></div>
     </div>
 
     <script>
         const questions = [
-            { question: "更新世ののち、海面が〇〇して日本列島が形成された。", answer: "上昇" },
-            { question: "更新世＝旧石器時代 or 〇〇時代。", answer: "先土器" },
-            { question: "旧石器時代は〇〇中心の経済であった。", answer: "狩猟経済" },
-            { question: "狩猟採集経済は〇〇の段階であった。", answer: "獲得経済" },
-            { question: "縄文時代は〇〇中心の経済であった。", answer: "採取経済" },
-            { question: "縄文時代に交易されていた黒い石器の材料は何か？", answer: "黒曜石" },
-            { question: "縄文時代に交易されていた緑色の装飾品の材料は何か？", answer: "ヒスイ" },
-            { question: "灌漑式水田稲作を経済基盤とする社会は〇〇経済と呼ばれる。", answer: "生産経済" },
-            { question: "弥生時代に広まったのは〇〇耕作である。", answer: "水稲耕作" },
-            { question: "水稲耕作の早期のものは〇〇に集中していた。", answer: "博多平野" },
-            { question: "水稲耕作の技術者が渡来したのは日本のどの方向からか？", answer: "朝鮮南部" },
-            { question: "〇〇の入手が絡んだ武力抗争が発生し、共同体の連合と統合が加速した。", answer: "鉄" },
-            { question: "共同体の〇〇と統合の動きが一挙に加速した。", answer: "連合" },
-            { question: "共同体の連合と〇〇の動きが一挙に加速した。", answer: "統合" },
-            { question: "〇〇世紀末までに大和王権が誕生した。", answer: "3世紀末" },
-            { question: "〇〇王権は畿内の共同体連合が誕生した。", answer: "大和王権" },
-            { question: "王権より〇〇や県主の称号が付与された。", answer: "国造" },
-            { question: "王権より国造や〇〇の称号が付与された。", answer: "県主" },
-            { question: "王権が畿外の首長を支配するための枠組を〇〇制という。", answer: "国造制" },
-            { question: "国造制は王権が畿外の〇〇するための枠組である。", answer: "首長を支配" },
-            { question: "王権が共同体の首長を介してその構成員に貢納を義務づけるシステムを〇〇制という。", answer: "部民制" },
-            { question: "部民制は王権が共同体の首長を介してその〇〇を義務づけるシステムである。", answer: "構成員に貢納" },
-            { question: "王権が土地を直轄支配するシステムを〇〇制という。", answer: "屯倉制" },
-            { question: "屯倉制は王権が土地を〇〇するシステムである。", answer: "直轄支配" },
-            { question: "律令国家は〇〇制による間接支配を廃棄した。", answer: "部民制" },
-            { question: "律令国家は部民制による〇〇支配を廃棄した。", answer: "間接" },
-            { question: "律令国家は〇〇制による直接支配を発展させた。", answer: "屯倉制" },
-            { question: "律令国家は屯倉制による〇〇支配を発展させた。", answer: "直接" },
-            { question: "〇〇世紀末までに軍国体制としての律令制が確立した。", answer: "7世紀末" },
-            { question: "7世紀末までに〇〇としての律令制が確立した。", answer: "軍国体制" },
-            { question: "7世紀末までに軍国体制としての〇〇制が確立した。", answer: "律令制" },
-            { question: "首長が地方行政機構の末端（＝郡司）に位置づけられた制度を〇〇制という。", answer: "公地公民制" },
-            { question: "公地公民制において、首長は地方行政機構の末端（＝〇〇）に位置づけられた。", answer: "郡司" },
-            { question: "律令制下の経済構造は〇〇貢納経済であった。", answer: "実物" },
-            { question: "実物貢納経済では調庸物（→〇〇税）が貢納された。", answer: "人頭" },
-            { question: "調庸物は国郡衙に貢納され、〇〇省を経て中央諸官司に分配された。", answer: "大蔵" },
-            { question: "朝鮮において〇〇が安定的な体制を構築し、軍国体制の空洞化が進んだ。", answer: "新羅" },
-            { question: "共同体内部から成長した新興有力農民を〇〇という。", answer: "富豪の輩" },
-            { question: "平安期の貴族政権が「富豪の輩」の経営を地方支配に組み込んだ制度を〇〇という。", answer: "負名田堵制" },
-            { question: "負名田堵制は、〇〇税から土地税への転換を意味する。", answer: "人頭" },
-            { question: "負名田堵制は、人頭税から〇〇税への転換を意味する。", answer: "土地" },
-            { question: "10世紀から12世紀にかけての律令国家体制から中世国家体制へと移行する過渡期の国家体制を〇〇体制という。", answer: "王朝国家体制" },
-            { question: "中世前期の経済体制は〇〇制の成立が重要であった。", answer: "荘園公領" },
-            { question: "「富豪の輩」の系譜を引く者を〇〇という。", answer: "在地領主" },
-            { question: "在地領主が開発した耕地を〇〇と呼んだ。", answer: "私領" },
-            { question: "荘園領主を務めた公家・寺社・武家を総称して〇〇という。", answer: "権門" },
-            { question: "荘園領主を務めた三つの権門のうち、皇室や藤原摂関家が属したのは何か？", answer: "公家" },
-            { question: "荘園領主を務めた三つの権門のうち、東大寺や延暦寺が属したのは何か？", answer: "寺社" },
-            { question: "荘園領主を務めた三つの権門のうち、鎌倉将軍家が属したのは何か？", answer: "武家" },
-            { question: "荘園支配における年貢と公事を収取した最上位の権利者を〇〇という。", answer: "本家" },
-            { question: "荘園支配において、本家の下に位置し、年貢と公事を収取した権利者を〇〇という。", answer: "領家" },
-            { question: "荘園支配において、領家の下に位置し、年貢と公事を収取した権利者を〇〇という。", answer: "預所" },
-            { question: "荘園支配において、預所の下に位置し、年貢と公事を収取した者を〇〇という。", answer: "下司・地頭" },
-            { question: "荘園支配において、最下層で年貢と公事を負担した農民を〇〇という。", answer: "名主" },
-            { question: "荘園支配において、荘民が負担した米や絹などの生産物を〇〇という。", answer: "年貢" },
-            { question: "荘園支配において、荘民が負担した山菜や紙、薪などの生産物を〇〇という。", answer: "公事" },
-            { question: "公領支配において、権門であり、国司の上に位置する者を〇〇という。", answer: "知行国主" },
-            { question: "公領支配において、知行国主の下に位置し、官物と臨時雑役を収取した者を〇〇という。", answer: "国司" },
-            { question: "公領支配において、国司の下に位置し、官物と臨時雑役を収取した者を〇〇という。", answer: "目代" },
-            { question: "公領支配において、目代の下に位置し、官物と臨時雑役を収取した在地領主を〇〇という。", answer: "在庁官人" },
-            { question: "公領支配において、官物と臨時雑役を負担した者を〇〇という。", answer: "名主" },
-            { question: "公領支配において、国司や在庁官人が収取した物品を〇〇という。", answer: "官物" },
-            { question: "公領支配において、国司や在庁官人が収取した労役や雑税を〇〇という。", answer: "臨時雑役" },
-            { question: "鎌倉幕府が導入した国と荘園を管理する制度を〇〇制という。", answer: "守護地頭制" },
-            { question: "荘園領主の支配と経営において、米や絹などの生産物を〇〇と呼んだ。", answer: "年貢" },
-            { question: "荘園領主の支配と経営において、山菜や紙、薪などの生産物を〇〇と呼んだ。", answer: "公事" },
-            { question: "荘園領主の支配と経営において、宿直や掃除、邸宅の警衛といった労役を〇〇と呼んだ。", answer: "夫役" },
-            { question: "中世後期の社会構造と経済構造の大きな変化の背景にあった内乱は何か？", answer: "南北朝の内乱" },
-            { question: "〇〇世紀末に確立した室町幕府体制では、将軍権力がすべての権門の上位に君臨した。", answer: "14世紀末" },
-            { question: "室町幕府体制では、将軍権力はすべての〇〇の上位に君臨した。", answer: "権門" },
-            { question: "室町幕府体制において、守護が国衙に代わる公的支配を展開し、次第に領国化した制度を〇〇制という。", answer: "守護領国制" },
-            { question: "室町幕府体制において、在地領主が展開した支配体制を〇〇制という。", answer: "国人領主制" },
-            { question: "〇〇世紀後半に入ると、国人領主は一円的な領域支配へ脱却した。", answer: "15世紀後半" },
-            { question: "15世紀後半に入ると、国人領主は荘園公領制的な所領の散在性を脱却し、〇〇的な領域支配へ移行した。", answer: "一円" },
-            { question: "守護領国制と国人領主制の浸透・拡大により成長した勢力を〇〇という。", answer: "在地領主" },
-            { question: "荘園公領制の根幹をなす「〇〇の体系」は、在地領主の成長により下方に拡散した。", answer: "職" },
-            { question: "荘園公領制の解体において、本所に隷属して貢納生産を強いられていた〇〇が自立した。", answer: "座" },
-            { question: "1467年から1477年にかけての乱を〇〇の乱という。", answer: "応仁・文明" },
-            { question: "応仁・文明の乱が起こったのは〇〇年。", answer: "1467" },
-            { question: "応仁・文明の乱が終わったのは〇〇年。", answer: "1477" },
-            { question: "応仁・文明の乱により、各守護の〇〇化が進んだ。", answer: "在国" },
-            { question: "戦国大名の領国経営の核心にあった、土地と生産力の把握、年貢収取、家臣団への知行宛行と軍役賦課を一体的に実現する基準を〇〇制という。", answer: "貫高制" },
-            { question: "貫高制は、領国内の土地と〇〇力の把握を行った。", answer: "生産" },
-            { question: "貫高制は、農民からの〇〇収取を行った。", answer: "年貢" },
-            { question: "貫高制は、家臣団への〇〇と軍役賦課を一体的に実現した。", answer: "知行宛行" },
-            { question: "貫高制は、家臣団への知行宛行と〇〇賦課を一体的に実現した。", answer: "軍役" },
-            { question: "市場における市座商人の営業独占を排除し、自由な営業活動を保証する戦国大名の政策を〇〇という。", answer: "楽市令" },
-            { question: "日明貿易で1530年代から輸出が増加した貴金属は何か？", answer: "銀" },
-            { question: "日明貿易で〇〇年代から銀の輸出が増加した。", answer: "1530" },
-            { question: "日明貿易で輸入された貨幣は何か？", answer: "銅銭" },
-            { question: "日明貿易で輸入された重要な繊維製品の原料は何か？", answer: "生糸" },
-            { question: "今川氏の城下都市はどこか？", answer: "駿府" },
-            { question: "朝倉氏の城下都市はどこか？", answer: "一乗谷" },
-            { question: "大内氏の城下都市はどこか？", answer: "山口" },
-            { question: "北条氏の城下都市はどこか？", answer: "小田原" },
-            { question: "戦国期の港湾都市で「自治都市」と呼ばれたのは桑名、大湊とどこか？", answer: "堺" },
-            { question: "戦国期の港湾都市で「自治都市」と呼ばれたのは大湊、堺とどこか？", answer: "桑名" },
-            { question: "戦国期の港湾都市で「自治都市」と呼ばれたのは桑名、堺とどこか？", answer: "大湊" },
-            { question: "戦国期の港湾都市のうち、堺などの〇〇都市が発達した。", answer: "自治" }
+            { question: "更新世ののち、〇〇して日本列島が形成された。", answer: "海面が上昇", options: ["大陸と分離", "氷河が拡大", "地殻変動が活発化", "海面が上昇", "火山活動が沈静化"] },
+            { question: "更新世＝旧石器時代 or 〇〇時代。", answer: "先土器", options: ["縄文", "弥生", "古墳", "旧石器", "先土器"] },
+            { question: "旧石器時代は〇〇中心の経済であった。", answer: "狩猟経済", options: ["採集経済", "漁労経済", "農耕経済", "狩猟経済", "牧畜経済"] },
+            { question: "狩猟採集経済は〇〇の段階であった。", answer: "獲得経済", options: ["生産経済", "流通経済", "分配経済", "交換経済", "獲得経済"] },
+            { question: "縄文時代は〇〇中心の経済であった。", answer: "採取経済", options: ["狩猟経済", "農耕経済", "漁労経済", "採取経済", "商業経済"] },
+            { question: "縄文時代に交易されていた黒い石器の材料は何か？", answer: "黒曜石", options: ["花崗岩", "安山岩", "黒曜石", "玄武岩", "チャート"] },
+            { question: "縄文時代に交易されていた緑色の装飾品の材料は何か？", answer: "ヒスイ", options: ["瑪瑙", "水晶", "琥珀", "翡翠", "トルコ石"] },
+            { question: "灌漑式水田稲作を経済基盤とする社会は〇〇経済と呼ばれる。", answer: "生産経済", options: ["獲得経済", "交換経済", "流通経済", "生産経済", "複合経済"] },
+            { question: "弥生時代に広まったのは〇〇耕作である。", answer: "水稲耕作", options: ["畑作", "焼畑耕作", "水稲耕作", "牧畜", "果樹栽培"] },
+            { question: "水稲耕作の早期のものは〇〇に集中していた。", answer: "博多平野", options: ["大阪平野", "濃尾平野", "関東平野", "博多平野", "石狩平野"] },
+            { question: "水稲耕作の技術者が渡来したのは日本のどの方向からか？", answer: "朝鮮南部", options: ["中国北部", "シベリア", "台湾", "朝鮮南部", "東南アジア"] },
+            { question: "〇〇の入手が絡んだ武力抗争が発生し、共同体の連合と統合が加速した。", answer: "鉄", options: ["銅", "青銅", "金", "銀", "鉄"] },
+            { question: "共同体の〇〇と統合の動きが一挙に加速した。", answer: "連合", options: ["分散", "独立", "細分化", "連合", "孤立"] },
+            { question: "共同体の連合と〇〇の動きが一挙に加速した。", answer: "統合", options: ["分散", "分離", "縮小", "統合", "拡散"] },
+            { question: "〇〇世紀末までに大和王権が誕生した。", answer: "3世紀末", options: ["1世紀末", "2世紀末", "3世紀末", "4世紀末", "5世紀末"] },
+            { question: "〇〇王権は畿内の共同体連合が誕生した。", answer: "大和王権", options: ["出雲王権", "吉備王権", "筑紫王権", "大和王権", "東海王権"] },
+            { question: "王権より〇〇や県主の称号が付与された。", answer: "国造", options: ["郡司", "太守", "守護", "国造", "地頭"] },
+            { question: "王権より国造や〇〇の称号が付与された。", answer: "県主", options: ["令長", "郡司", "県主", "郷司", "里長"] },
+            { question: "王権が畿外の首長を支配するための枠組を〇〇制という。", answer: "国造制", options: ["部民制", "屯倉制", "律令制", "国造制", "公地公民制"] },
+            { question: "国造制は王権が畿外の〇〇するための枠組である。", answer: "首長を支配", options: ["土地を管理", "人民を徴税", "軍事を統括", "首長を支配", "交易を独占"] },
+            { question: "王権が共同体の首長を介してその構成員に貢納を義務づけるシステムを〇〇制という。", answer: "部民制", options: ["屯倉制", "国造制", "律令制", "公地公民制", "部民制"] },
+            { question: "部民制は王権が共同体の首長を介してその〇〇を義務づけるシステムである。", answer: "構成員に貢納", options: ["土地を貸与", "労役を課す", "軍役を課す", "構成員に貢納", "居住を制限"] },
+            { question: "王権が土地を直轄支配するシステムを〇〇制という。", answer: "屯倉制", options: ["部民制", "国造制", "律令制", "公地公民制", "屯倉制"] },
+            { question: "屯倉制は王権が土地を〇〇するシステムである。", answer: "直轄支配", options: ["間接支配", "共同利用", "私有化", "直轄支配", "寄進"] },
+            { question: "律令国家は〇〇制による間接支配を廃棄した。", answer: "部民制", options: ["国造制", "屯倉制", "班田収授法", "部民制", "荘園制"] },
+            { question: "律令国家は部民制による〇〇支配を廃棄した。", answer: "間接", options: ["直接", "排他的", "集約的", "間接", "専制"] },
+            { question: "律令国家は〇〇制による直接支配を発展させた。", answer: "屯倉制", options: ["部民制", "国造制", "公地公民制", "班田収授法", "屯倉制"] },
+            { question: "律令国家は屯倉制による〇〇支配を発展させた。", answer: "直接", options: ["間接", "部分的", "段階的", "直接", "暫定的"] },
+            { question: "〇〇世紀末までに軍国体制としての律令制が確立した。", answer: "7世紀末", options: ["6世紀末", "7世紀末", "8世紀末", "9世紀末", "10世紀末"] },
+            { question: "7世紀末までに〇〇としての律令制が確立した。", answer: "軍国体制", options: ["文民統制", "中央集権体制", "地方分権体制", "軍国体制", "経済優先体制"] },
+            { question: "7世紀末までに軍国体制としての〇〇制が確立した。", answer: "律令制", options: ["国造制", "部民制", "屯倉制", "荘園制", "律令制"] },
+            { question: "首長が地方行政機構の末端（＝郡司）に位置づけられた制度を〇〇制という。", answer: "公地公民制", options: ["班田収授法", "租庸調", "公地公民制", "負名田堵制", "荘園公領制"] },
+            { question: "公地公民制において、首長は地方行政機構の末端（＝〇〇）に位置づけられた。", answer: "郡司", options: ["国司", "守護", "地頭", "郡司", "検非違使"] },
+            { question: "律令制下の経済構造は〇〇貢納経済であった。", answer: "実物", options: ["貨幣", "信用", "流通", "実物", "商品"] },
+            { question: "実物貢納経済では調庸物（→〇〇税）が貢納された。", answer: "人頭", options: ["土地", "家屋", "財産", "人頭", "交易"] },
+            { question: "調庸物は国郡衙に貢納され、〇〇省を経て中央諸官司に分配された。", answer: "大蔵", options: ["民部", "刑部", "治部", "大蔵", "兵部"] },
+            { question: "朝鮮において〇〇が安定的な体制を構築し、軍国体制の空洞化が進んだ。", answer: "新羅", options: ["高句麗", "百済", "伽耶", "新羅", "渤海"] },
+            { question: "共同体内部から成長した新興有力農民を〇〇という。", answer: "富豪の輩", options: ["荘官", "地頭", "国人", "富豪の輩", "守護代"] },
+            { question: "平安期の貴族政権が「富豪の輩」の経営を地方支配に組み込んだ制度を〇〇という。", answer: "負名田堵制", options: ["公地公民制", "班田収授法", "荘園公領制", "負名田堵制", "貫高制"] },
+            { question: "負名田堵制は、〇〇税から土地税への転換を意味する。", answer: "人頭", options: ["家屋", "物品", "交易", "人頭", "財産"] },
+            { question: "負名田堵制は、人頭税から〇〇税への転換を意味する。", answer: "土地", options: ["収益", "物品", "労役", "土地", "商業"] },
+            { question: "10世紀から12世紀にかけての律令国家体制から中世国家体制へと移行する過渡期の国家体制を〇〇体制という。", answer: "王朝国家体制", options: ["幕藩体制", "律令体制", "武家政権", "王朝国家体制", "荘園国家"] },
+            { question: "中世前期の経済体制は〇〇制の成立が重要であった。", answer: "荘園公領", options: ["公地公民", "班田収授", "屯倉部民", "荘園公領", "守護地頭"] },
+            { question: "「富豪の輩」の系譜を引く者を〇〇という。", answer: "在地領主", options: ["国司", "郡司", "中央貴族", "在地領主", "皇族"] },
+            { question: "在地領主が開発した耕地を〇〇と呼んだ。", answer: "私領", options: ["公領", "墾田", "開墾地", "私領", "寄進地"] },
+            { question: "荘園領主を務めた公家・寺社・武家を総称して〇〇という。", answer: "権門", options: ["閥族", "門閥", "家門", "権門", "公家"] },
+            { question: "荘園領主を務めた三つの権門のうち、皇室や藤原摂関家が属したのは何か？", answer: "公家", options: ["武家", "寺社", "院", "公家", "皇族"] },
+            { question: "荘園領主を務めた三つの権門のうち、東大寺や延暦寺が属したのは何か？", answer: "寺社", options: ["公家", "武家", "院", "寺社", "守護"] },
+            { question: "荘園領主を務めた三つの権門のうち、鎌倉将軍家が属したのは何か？", answer: "武家", options: ["公家", "寺社", "院", "皇族", "武家"] },
+            { question: "荘園支配における年貢と公事を収取した最上位の権利者を〇〇という。", answer: "本家", options: ["領家", "預所", "下司", "地頭", "本家"] },
+            { question: "荘園支配において、本家の下に位置し、年貢と公事を収取した権利者を〇〇という。", answer: "領家", options: ["本家", "預所", "下司", "地頭", "領家"] },
+            { question: "荘園支配において、領家の下に位置し、年貢と公事を収取した権利者を〇〇という。", answer: "預所", options: ["本家", "領家", "下司", "地頭", "預所"] },
+            { question: "荘園支配において、預所の下に位置し、年貢と公事を収取した者を〇〇という。", answer: "下司・地頭", options: ["名主", "荘官", "在庁官人", "守護", "下司・地頭"] },
+            { question: "荘園支配において、最下層で年貢と公事を負担した農民を〇〇という。", answer: "名主", options: ["作人", "小作人", "郷司", "地頭", "名主"] },
+            { question: "荘園支配において、荘民が負担した米や絹などの生産物を〇〇という。", answer: "年貢", options: ["公事", "夫役", "官物", "臨時雑役", "年貢"] },
+            { question: "荘園支配において、荘民が負担した山菜や紙、薪などの生産物を〇〇という。", answer: "公事", options: ["年貢", "夫役", "官物", "臨時雑役", "公事"] },
+            { question: "公領支配において、権門であり、国司の上に位置する者を〇〇という。", answer: "知行国主", options: ["国司", "目代", "守護", "地頭", "知行国主"] },
+            { question: "公領支配において、知行国主の下に位置し、官物と臨時雑役を収取した者を〇〇という。", answer: "国司", options: ["知行国主", "目代", "在庁官人", "守護", "国司"] },
+            { question: "公領支配において、国司の下に位置し、官物と臨時雑役を収取した者を〇〇という。", answer: "目代", options: ["知行国主", "国司", "在庁官人", "守護", "目代"] },
+            { question: "公領支配において、目代の下に位置し、官物と臨時雑役を収取した在地領主を〇〇という。", answer: "在庁官人", options: ["名主", "郡司", "郷司", "在庁官人", "地頭"] },
+            { question: "公領支配において、官物と臨時雑役を負担した者を〇〇という。", answer: "名主", options: ["作人", "小作人", "荘官", "守護", "名主"] },
+            { question: "公領支配において、国司や在庁官人が収取した物品を〇〇という。", answer: "官物", options: ["年貢", "公事", "夫役", "臨時雑役", "官物"] },
+            { question: "公領支配において、国司や在庁官人が収取した労役や雑税を〇〇という。", answer: "臨時雑役", options: ["年貢", "公事", "夫役", "官物", "臨時雑役"] },
+            { question: "鎌倉幕府が導入した国と荘園を管理する制度を〇〇制という。", answer: "守護地頭制", options: ["荘園公領制", "律令制", "国造制", "部民制", "守護地頭制"] },
+            { question: "荘園領主の支配と経営において、米や絹などの生産物を〇〇と呼んだ。", answer: "年貢", options: ["公事", "夫役", "官物", "雑役", "年貢"] },
+            { question: "荘園領主の支配と経営において、山菜や紙、薪などの生産物を〇〇と呼んだ。", answer: "公事", options: ["年貢", "夫役", "官物", "雑役", "公事"] },
+            { question: "荘園領主の支配と経営において、宿直や掃除、邸宅の警衛といった労役を〇〇と呼んだ。", answer: "夫役", options: ["年貢", "公事", "官物", "雑役", "夫役"] },
+            { question: "中世後期の社会構造と経済構造の大きな変化の背景にあった内乱は何か？", answer: "南北朝の内乱", options: ["平将門の乱", "保元の乱", "平治の乱", "南北朝の内乱", "応仁の乱"] },
+            { question: "〇〇世紀末に確立した室町幕府体制では、将軍権力がすべての権門の上位に君臨した。", answer: "14世紀末", options: ["13世紀末", "14世紀末", "15世紀末", "16世紀末", "17世紀末"] },
+            { question: "室町幕府体制では、将軍権力はすべての〇〇の上位に君臨した。", answer: "権門", options: ["武家", "公家", "寺社", "皇室", "権門"] },
+            { question: "室町幕府体制において、守護が国衙に代わる公的支配を展開し、次第に領国化した制度を〇〇制という。", answer: "守護領国制", options: ["荘園公領制", "国人領主制", "律令制", "守護領国制", "幕藩体制"] },
+            { question: "室町幕府体制において、在地領主が展開した支配体制を〇〇制という。", answer: "国人領主制", options: ["守護領国制", "荘園公領制", "武家政権", "国人領主制", "郡司支配"] },
+            { question: "〇〇世紀後半に入ると、国人領主は一円的な領域支配へ脱却した。", answer: "15世紀後半", options: ["14世紀後半", "15世紀前半", "15世紀後半", "16世紀前半", "16世紀後半"] },
+            { question: "15世紀後半に入ると、国人領主は荘園公領制的な所領の散在性を脱却し、〇〇的な領域支配へ移行した。", answer: "一円", options: ["広域", "分散", "限定", "一円", "限定"] },
+            { question: "守護領国制と国人領主制の浸透・拡大により成長した勢力を〇〇という。", answer: "在地領主", options: ["守護代", "中央貴族", "寺社勢力", "在地領主", "豪商"] },
+            { question: "荘園公領制の根幹をなす「〇〇の体系」は、在地領主の成長により下方に拡散した。", answer: "職", options: ["領", "地", "田", "職", "権"] },
+            { question: "荘園公領制の解体において、本所に隷属して貢納生産を強いられていた〇〇が自立した。", answer: "座", options: ["問丸", "商人", "職人", "座", "問屋"] },
+            { question: "1467年から1477年にかけての乱を〇〇の乱という。", answer: "応仁・文明", options: ["文永・弘安", "元弘・建武", "応仁・文明", "永享・嘉吉", "享徳の乱"] },
+            { question: "応仁・文明の乱が起こったのは〇〇年。", answer: "1467", options: ["1457", "1467", "1477", "1487", "1497"] },
+            { question: "応仁・文明の乱が終わったのは〇〇年。", answer: "1477", options: ["1457", "1467", "1477", "1487", "1497"] },
+            { question: "応仁・文明の乱により、各守護の〇〇化が進んだ。", answer: "在国", options: ["集権", "出陣", "離反", "在国", "分散"] },
+            { question: "戦国大名の領国経営の核心にあった、土地と生産力の把握、年貢収取、家臣団への知行宛行と軍役賦課を一体的に実現する基準を〇〇制という。", answer: "貫高制", options: ["石高制", "検地", "兵農分離", "貫高制", "人別制"] },
+            { question: "貫高制は、領国内の土地と〇〇力の把握を行った。", answer: "生産", options: ["消費", "流通", "販売", "生産", "交換"] },
+            { question: "貫高制は、農民からの〇〇収取を行った。", answer: "年貢", options: ["公事", "夫役", "雑役", "年貢", "税"] },
+            { question: "貫高制は、家臣団への〇〇と軍役賦課を一体的に実現した。", answer: "知行宛行", options: ["知行給与", "給人", "俸禄", "知行宛行", "恩賞"] },
+            { question: "貫高制は、家臣団への知行宛行と〇〇賦課を一体的に実現した。", answer: "軍役", options: ["労役", "雑役", "夫役", "軍役", "納税"] },
+            { question: "市場における市座商人の営業独占を排除し、自由な営業活動を保証する戦国大名の政策を〇〇という。", answer: "楽市令", options: ["関所撤廃令", "撰銭令", "分国法", "楽市令", "刀狩令"] },
+            { question: "日明貿易で1530年代から輸出が増加した貴金属は何か？", answer: "銀", options: ["金", "銅", "鉄", "銀", "鉛"] },
+            { question: "日明貿易で〇〇年代から銀の輸出が増加した。", answer: "1530", options: ["1480", "1490", "1500", "1510", "1530"] },
+            { question: "日明貿易で輸入された貨幣は何か？", answer: "銅銭", options: ["金貨", "銀貨", "銅銭", "鉄銭", "紙幣"] },
+            { question: "日明貿易で輸入された重要な繊維製品の原料は何か？", answer: "生糸", options: ["木綿", "麻", "絹織物", "生糸", "羊毛"] },
+            { question: "今川氏の城下都市はどこか？", answer: "駿府", options: ["浜松", "岡崎", "小田原", "駿府", "甲府"] },
+            { question: "朝倉氏の城下都市はどこか？", answer: "一乗谷", options: ["春日山", "金沢", "福井", "一乗谷", "山口"] },
+            { question: "大内氏の城下都市はどこか？", answer: "山口", options: ["博多", "広島", "安芸", "山口", "長門"] },
+            { question: "北条氏の城下都市はどこか？", answer: "小田原", options: ["鎌倉", "江戸", "八王子", "小田原", "川越"] },
+            { question: "戦国期の港湾都市で「自治都市」と呼ばれたのは桑名、大湊とどこか？", answer: "堺", options: ["博多", "敦賀", "坊津", "堺", "下関"] },
+            { question: "戦国期の港湾都市で「自治都市」と呼ばれたのは大湊、堺とどこか？", answer: "桑名", options: ["博多", "敦賀", "坊津", "桑名", "下関"] },
+            { question: "戦国期の港湾都市で「自治都市」と呼ばれたのは桑名、堺とどこか？", answer: "大湊", options: ["博多", "敦賀", "坊津", "大湊", "下関"] },
+            { question: "戦国期の港湾都市のうち、堺などの〇〇都市が発達した。", answer: "自治", options: ["商業", "軍事", "宗教", "自治", "工業"] }
         ];
 
         let currentQuestionIndex = 0;
         let correctCount = 0;
+        let answeredThisQuestion = false; // 問題に回答済みかどうかのフラグ
 
         const questionText = document.getElementById('question-text');
-        const answerInput = document.getElementById('answer-input');
-        const checkButton = document.getElementById('check-button');
-        const nextButton = document.getElementById('next-button');
+        const optionsContainer = document.getElementById('options-container');
         const resultMessage = document.getElementById('result-message');
-        const correctAnswerDisplay = document.getElementById('correct-answer');
+        const correctAnswerDisplay = document.getElementById('correct-answer-display');
         const correctAnswerText = document.getElementById('correct-answer-text');
+        const nextButton = document.getElementById('next-button');
         const progressDisplay = document.getElementById('progress');
+
+        // 配列のシャッフル関数 (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 初期化時に問題をシャッフル
+        shuffleArray(questions);
 
         function displayQuestion() {
             if (currentQuestionIndex < questions.length) {
                 const q = questions[currentQuestionIndex];
                 questionText.textContent = q.question;
-                answerInput.value = '';
+                optionsContainer.innerHTML = ''; // 選択肢をクリア
                 resultMessage.textContent = '';
                 resultMessage.className = '';
                 correctAnswerDisplay.style.display = 'none';
-                checkButton.style.display = 'inline-block';
                 nextButton.style.display = 'none';
-                answerInput.focus();
+                answeredThisQuestion = false; // 回答フラグをリセット
+
+                // 選択肢をシャッフル
+                const shuffledOptions = shuffleArray([...q.options]);
+
+                shuffledOptions.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-button');
+                    button.onclick = () => selectAnswer(button, option, q.answer);
+                    optionsContainer.appendChild(button);
+                });
                 updateProgress();
             } else {
                 questionText.textContent = `クイズ終了！ ${questions.length}問中${correctCount}問正解でした！`;
-                answerInput.style.display = 'none';
-                checkButton.style.display = 'none';
-                nextButton.style.display = 'none';
+                optionsContainer.innerHTML = '';
                 resultMessage.textContent = '';
                 correctAnswerDisplay.style.display = 'none';
+                nextButton.style.display = 'none';
                 progressDisplay.textContent = '';
             }
         }
 
-        function checkAnswer() {
-            const userAnswer = answerInput.value.trim();
-            const correctAnswer = questions[currentQuestionIndex].answer;
+        function selectAnswer(clickedButton, selectedOption, correctAnswer) {
+            if (answeredThisQuestion) { // すでに回答済みの場合は何もしない
+                return;
+            }
+            answeredThisQuestion = true; // 回答済みフラグを立てる
 
-            if (userAnswer === correctAnswer) {
+            // 全ての選択肢ボタンを無効化
+            Array.from(optionsContainer.children).forEach(button => {
+                button.classList.add('disabled');
+            });
+
+            if (selectedOption === correctAnswer) {
                 resultMessage.textContent = '正解！';
                 resultMessage.className = 'correct';
+                clickedButton.classList.add('correct-answer');
                 correctCount++;
             } else {
                 resultMessage.textContent = '不正解...';
                 resultMessage.className = 'incorrect';
+                clickedButton.classList.add('incorrect-answer');
                 correctAnswerText.textContent = correctAnswer;
                 correctAnswerDisplay.style.display = 'block';
+                // 正しい選択肢をハイライト
+                Array.from(optionsContainer.children).forEach(button => {
+                    if (button.textContent === correctAnswer) {
+                        button.classList.add('correct-answer');
+                    }
+                });
             }
-            checkButton.style.display = 'none';
-            nextButton.style.display = 'inline-block';
+            nextButton.style.display = 'block';
         }
 
         function nextQuestion() {
@@ -281,17 +327,6 @@
         function updateProgress() {
             progressDisplay.textContent = `問題 ${currentQuestionIndex + 1} / ${questions.length}`;
         }
-
-        // Enterキーでの操作
-        answerInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                if (checkButton.style.display === 'inline-block') {
-                    checkAnswer();
-                } else if (nextButton.style.display === 'inline-block') {
-                    nextQuestion();
-                }
-            }
-        });
 
         // 初期表示
         displayQuestion();
