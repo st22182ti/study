@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>専門用語 英語クイズ</title>
+    <style>
+        /* Google Fontsからクリーンなフォントを読み込む */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500&display=swap');
+
+        :root {
+            --primary-color: #007bff;
+            --correct-color: #28a745;
+            --incorrect-color: #dc3545;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .quiz-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-title {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        #counter {
+            font-size: 0.9rem;
+            text-align: center;
+            color: #777;
+            margin-top: 8px;
+        }
+
+        .question-area {
+            padding: 40px 24px;
+            text-align: center;
+        }
+
+        #ja-term {
+            font-size: 2rem; /* 日本語を大きく表示 */
+            font-weight: 500;
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .answer-area {
+            padding: 0 24px 32px;
+        }
+
+        #en-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            font-family: 'Roboto', sans-serif; /* 英語入力はRoboto */
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box; /* paddingを含めてwidth 100% */
+            transition: border-color 0.3s;
+        }
+
+        #en-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        #message {
+            margin-top: 16px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-align: center;
+            min-height: 1.5em; /* メッセージの高さを確保 */
+        }
+
+        .message-correct {
+            color: var(--correct-color);
+        }
+
+        .message-incorrect {
+            color: var(--incorrect-color);
+        }
+        
+        .complete-message {
+            padding: 40px 24px;
+            text-align: center;
+        }
+        
+        .complete-message h2 {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+        }
+        
+        #restart-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+        
+        #restart-button:hover {
+            background-color: #0056b3;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <div class="header">
+            <h1 class="header-title">専門用語 英語クイズ</h1>
+            <div id="counter"></div>
+        </div>
+
+        <div id="quiz-body">
+            <div class="question-area">
+                <div id="ja-term">読み込み中...</div>
+            </div>
+            <div class="answer-area">
+                <input type="text" id="en-input" placeholder="対応する英単語を入力..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <div id="message"></div>
+            </div>
+        </div>
+        
+        <div id="complete-screen" class="complete-message" style="display: none;">
+            <h2>ラウンド完了！</h2>
+            <p>すべての単語を出題しました。</p>
+            <button id="restart-button">もう一度挑戦する</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 埋め込まれたCSVデータ ---
+        // CSVのデータをJavaScriptの配列形式に変換
+        const rawWordList = [
+            { ja: "過小適合", en: "underfitting" },
+            { ja: "モデルのパラメータ", en: "model parameter" },
+            { ja: "汎化誤差", en: "generalization error" },
+            { ja: "適応度関数", en: "fitness function" },
+            { ja: "標本外誤差", en: "out-of-sample error" },
+            { ja: "効用関数", en: "utility function" },
+            { ja: "損失関数", en: "Cost function" },
+            { ja: "学習", en: "training" },
+            { ja: "ホールドアウト検証", en: "holdout validation" },
+            { ja: "推論", en: "inference" },
+            { ja: "検証セット", en: "validation set" },
+            { ja: "開発セット", en: "development set" },
+            { ja: "前提", en: "assumption" },
+            { ja: "オンライン学習", en: "online learning" },
+            { ja: "半教師あり学習", en: "semi-supervised learning" },
+            { ja: "アウトオブコア", en: "out-of-core" },
+            { ja: "ニュートラルネットワーク", en: "neutral network" },
+            { ja: "過学習", en: "overfitting" },
+            { ja: "モデルの選択", en: "model selection" },
+            { ja: "ハイパーパラメータ", en: "hyperparameter" },
+            { ja: "バッチ学習", en: "batch learning" },
+            { ja: "過学習の逆", en: "the opposite of overfitting" },
+            { ja: "機械学習", en: "Machine learning" },
+            { ja: "異常検知", en: "anomaly detection" },
+            { ja: "強化学習", en: "reinforcement" },
+            { ja: "教師あり学習", en: "supervised learning" },
+            { ja: "特徴量", en: "feature" },
+            { ja: "回帰", en: "regression" },
+            { ja: "新規性検知", en: "novelty detection" },
+            { ja: "相関ルール学習", en: "association rule learning" },
+            { ja: "インスタンスベース学習", en: "Instance-based learning" },
+            { ja: "モデルベース学習", en: "model-based learning" },
+            { ja: "教師なし学習", en: "Unsupervised learning" },
+            { ja: "クラスタリング", en: "clustering" },
+            { ja: "特徴抽出", en: "feature extraction" },
+            { ja: "自然言語処理", en: "natural language processing" },
+            { ja: "特徴量エンジニアリング", en: "feature engineering" },
+            { ja: "ハイパーパラメータの調整", en: "Hyperparameter tuning" },
+            { ja: "特徴量選択", en: "feature selection" },
+            { ja: "非回答バイアス", en: "nonresponse bias" },
+            { ja: "学習開発セット", en: "Train-dev set" },
+            { ja: "正則化", en: "regularization" },
+            { ja: "自由度", en: "degrees of freedom" },
+            { ja: "サンプリングバイアス", en: "sampling bias" },
+            { ja: "ノーフリーランチ", en: "no free lunch" },
+            { ja: "パーセンタイル", en: "percentile" },
+            { ja: "標準偏差", en: "standard deviation" },
+            { ja: "右歪曲", en: "skewed right" },
+            { ja: "交差検証", en: "Cross-Validation" },
+            { ja: "ファインチューニング", en: "Fine-Tune" },
+            { ja: "グリッドサーチ", en: "Grid Search" },
+            { ja: "ランダムサーチ", en: "Randomized Search" },
+            { ja: "アンサンブルメソッド", en: "Ensemble methods" },
+            { ja: "データパイプライン", en: "data pipeline" },
+            { ja: "平均絶対誤差", en: "mean absolute error" },
+            { ja: "変換器", en: "transformer" },
+            { ja: "推定器", en: "predictor" },
+            { ja: "推定器", en: "estimator" },
+            { ja: "ピアソンのr", en: "Peason's r" },
+            { ja: "標準相関係数", en: "standard correlation coefficient" },
+            { ja: "データスヌーピングバイアス", en: "data snooping bias" },
+            { ja: "層別サンプリング", en: "stratified sampling" },
+            { ja: "正規化", en: "normalization" },
+            { ja: "最小最大スケーリング", en: "mini-max scaling" },
+            { ja: "標準化", en: "standardization" },
+            { ja: "k分割交差検証", en: "k-fold cross validation" },
+            { ja: "アンサンブル", en: "ensamble" },
+            { ja: "信頼区間", en: "confidence interval" },
+            { ja: "放射基底関数", en: "radial basis function" },
+            { ja: "対数", en: "log" },
+            { ja: "線形回帰モデル", en: "liner regression model" },
+            { ja: "モニタリングシステム", en: "monitoring system" }
+        ];
+
+        // --- アプリケーションロジック ---
+
+        let allWords = [];
+        let currentDeck = [];
+        let currentIndex = 0;
+        let isWaiting = false; // 正解後の待ち時間中かどうか
+
+        // DOM要素の取得
+        const jaTermElement = document.getElementById('ja-term');
+        const enInputElement = document.getElementById('en-input');
+        const messageElement = document.getElementById('message');
+        const counterElement = document.getElementById('counter');
+        const quizBody = document.getElementById('quiz-body');
+        const completeScreen = document.getElementById('complete-screen');
+        const restartButton = document.getElementById('restart-button');
+
+        // 1. データの初期化（重複削除）
+        function initializeData() {
+            const wordMap = new Map();
+            rawWordList.forEach(item => {
+                const ja = item.ja.trim();
+                const en = item.en.trim();
+                // 日本語をキーにして、重複を排除（先に出てきたものを優先）
+                if (ja && en && !wordMap.has(ja)) {
+                    wordMap.set(ja, en);
+                }
+            });
+
+            allWords = [];
+            wordMap.forEach((en, ja) => {
+                allWords.push({ ja, en });
+            });
+        }
+
+        // 2. 配列をシャッフル (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // 3. 新しいラウンドを開始
+        function startNewRound() {
+            currentDeck = [...allWords]; // マスターリストからコピー
+            shuffleArray(currentDeck); // デッキをシャッフル
+            currentIndex = 0;
+            isWaiting = false;
+            
+            // UIをクイズ画面に戻す
+            completeScreen.style.display = 'none';
+            quizBody.style.display = 'block';
+            
+            displayQuestion();
+        }
+
+        // 4. 問題を表示
+        function displayQuestion() {
+            if (currentIndex >= currentDeck.length) {
+                // ラウンド完了
+                showCompleteScreen();
+                return;
+            }
+
+            const word = currentDeck[currentIndex];
+            jaTermElement.textContent = word.ja;
+            counterElement.textContent = `${currentIndex + 1} / ${currentDeck.length}`;
+            
+            // 入力欄とメッセージをクリア
+            enInputElement.value = '';
+            messageElement.textContent = '';
+            messageElement.className = '';
+            
+            // 入力欄に自動フォーカス
+            enInputElement.focus();
+            isWaiting = false;
+        }
+        
+        // 5. ラウンド完了画面を表示
+        function showCompleteScreen() {
+            quizBody.style.display = 'none';
+            completeScreen.style.display = 'block';
+        }
+
+        // 6. 回答をチェック
+        function checkAnswer() {
+            // 正解後の待ち時間中は処理しない
+            if (isWaiting) return;
+
+            const userAnswer = enInputElement.value.trim();
+            const correctAnswer = currentDeck[currentIndex].en.trim();
+
+            // 大文字小文字を区別せずに比較
+            if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                // --- 正解 ---
+                messageElement.textContent = '正解！';
+                messageElement.className = 'message-correct';
+                isWaiting = true;
+                currentIndex++; // 次の問題へ
+
+                // 0.8秒後に次の問題を表示
+                setTimeout(() => {
+                    displayQuestion();
+                }, 800);
+
+            } else {
+                // --- 不正解 ---
+                messageElement.textContent = `不正解。正解は「${correctAnswer}」です。`;
+                messageElement.className = 'message-incorrect';
+                
+                // 不正解の時はインデックスを増やさない（同じ問題が再度出題される）
+                // ユーザーが再入力しやすいように、入力内容を選択状態にする
+                enInputElement.select();
+            }
+        }
+
+        // --- イベントリスナー ---
+
+        // Enterキーで回答をチェック
+        enInputElement.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // フォーム送信を防ぐ
+                checkAnswer();
+            }
+        });
+        
+        // リスタートボタン
+        restartButton.addEventListener('click', startNewRound);
+
+        // --- 初期化実行 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeData();
+            startNewRound();
+        });
+
+    </script>
+</body>
+</html>
